@@ -1,0 +1,74 @@
+* Goal of proposed script is to check data consistency on all Tor network exit nodes.
+* It checks only unencrypted traffic on exit nodes (so not HTTPS, FTPS, SSH etc),
+* cause on encrypted traffic, there is no (real) possibility to modify content.
+* Because script infrastructure is pluggable, there should be easy to extend
+* functionality by adding plugin for new protocol.
+*
+* Author of this proposal: slush, Léta Páně 2008
+
+Algorithms:
+===========
+
+first phase - preparation:
+--------------------------
+* Overview: In this step, script ask each plugin for internet resource,
+* which is able to parse/check (html page, ftp file, ...).
+* After that, web spider will start searching for these resources on
+* Internet (Using Google as start point).
+* Spider will stop after reaching limits on links per site, max files or bytes
+* downloaded per rule etc.
+load web spider conf (start keywords on google,
+		max links per site, max files/bytes download per rule, max time, max bytes)
+for each plugin:
+	retrieve rules (regexs) to protocol/filetype (http:// and *.doc etc)
+	add these rules to web spider (will follow only diven regexs)
+start web spider
+	select one of start keyword
+	download google search page
+	get links other than google.com to link bucket (check "links per site" limit!)
+	while link in bucket:
+		select link from bucket
+		if exceed "links per site" for this site:
+			remove link from bucket
+			skip to next link
+		download file from link
+		if file is html page (Content type):
+			get links from page to link bucket (check "links per site" limit!)
+		for each plugin:
+			skip plugin, if limit of number of files or bytes reached limits
+			if file matches to plugin rules (protocol, filetype, content type, ...)
+				add to plugin's list of matched files
+		remove link from bucket
+		if spider limits reached (max time, bytes), break
+		if limits on every plugins reached, break
+for each plugin:
+	save plugin's list of matched files
+
+second phase - execution:
+-------------------------
+connect to tor controller
+connect to tor socks proxy
+get list of all routers
+select running exit nodes, valid?, group them by country
+select running relays, uptime > 1day
+load check plugins
+for each exit node:
+	while not valid circuit or tries > 3:
+		create 2node circuit "random relay, exit node"
+	for each checkPlugin:
+
+third phase - analysis:
+-----------------------
+* Overview: Target of this phase is to cross-check plugin results of each matched file
+* across exit nodes. That means that there is no sharp border between valid and invalid exit node,
+* but some probability level of failure. When 99% exit nodes (in each country) returns the same
+* content of page and the last one returns something modified, there is probably problem.
+* On other side, when only 20% nodes returns the same content, there is big probability, that
+* "problem" is on content provider side (dynamic links, time-specific links etc).
+* Each script user should consider weights of all aspect and select border level regards
+* his own usage of Tor.
+
+Classes:
+========
+Protocol - implements top-level class for known internet services (HTTP, FTP, SSH)
+<XXX>Protocol - has to contain method to retrieve protocol-specific content, eg. SSH.
