@@ -18,7 +18,10 @@ try:
     import TorCtl       # https://www.torproject.org/svn/torflow/TorCtl/
     import GeoIPSupport # -||-
     import socks        # http://socksipy.sourceforge.net/
+
+    # TorScanner modules
     import common
+    import webspider
 
     # Standard Python modules
     import ConfigParser
@@ -28,12 +31,14 @@ try:
     import pickle
     import os
     import time
+    import imp
 except ImportError, e:
     print "%s found, please install it and run again." % e
     sys.exit(-1)
 
 # Will use first directory with "write" permission as data directory
 DATADIR_PATHS = ['/var/lib/torscanner', '~/.torscanner', '.']
+DATADIR_USER = '~/.torscanner'
 
 # Config files with priorities. First file with higher priority.
 CONFIG_PATHS = ['torscanner.conf',               # Current directory
@@ -57,30 +62,33 @@ if __name__ == '__main__':
     cfgs.extend(CONFIG_PATHS)
 
     # Loading configuration file
-    config = ConfigParser.SafeConfigParser(CONFIG_DEFAULTS)
-    for cfg in cfgs:
-        cfg = os.path.abspath(os.path.expanduser(cfg))
-        if os.path.exists(cfg):
-            common.log("Using config file\t '%s'." % cfg)
-            try:
-                config.read(cfg)
-            except Exception, e:
-                common.log(e, 'ERROR')
-                common.log("Config file corrupted, using built-in defaults.")
-            break
+    config = common.parseConfig(cfgs, CONFIG_DEFAULTS)
         
     #Joining cmdline param 'data' and list of default datadir places
     datadirs = []
     if options.data: datadirs.extend([options.data])
     datadirs.extend(DATADIR_PATHS)
 
-    # Selecting data directory
-    for ddir in datadirs:
-        ddir = os.path.abspath(os.path.expanduser(ddir))
-        if os.path.exists(ddir) and os.path.os.access(ddir, os.W_OK):
-            common.log("Using data directory '%s'." % ddir)
-            break
+    # Selecting data directory. Will create in user directory, 
+    # if there is no other location accessible for writing.
+    try:
+        datadir = common.selectDatadir(datadirs)
+    except Exception, e:
+        # When no datadir exists or exists without write access
+        common.log(e, 'ERROR')
+        common.log("Creating new data directory in '%s'" % DATADIR_USER )
+        try:
+            os.mkdir(os.path.expanduser(DATADIR_USER))
+            datadir = DATADIR_USER
+        except OSError, e:
+            common.log(e, 'ERROR')
+            sys.exit(-1)
 
+    # Load all plugins
+    # Load string names of plugins and retrieve its object representations
+    plugins = common.loadPlugins(map(lambda x: x.strip(), \
+                     config.get('global', 'plugins').split(',')))
+     
     #print config.getint('preparation', 'max_download')
     if options.preparation:
         common.log('Starting preparation phase', 'CMD')
