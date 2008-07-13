@@ -72,6 +72,18 @@ third phase - analysis:
 * Each script user should consider weights of all aspect and select border level regards
 * his own usage of Tor.
 
+Vstup: stromova struktura hashu pro kazdou stranku.
+	Stejna stranka stazena pres vsechny exit nody, tj. X kopii teze stranky.
+Pro kazdy hash spocitam jeho index (nezavisle na poradi, nezavisle na hloubce).
+	Hash vyjadruje procento zastoupeni hashe v ostatnich strankach.
+	0 = hash se v ostatnich strankach nevyskytuje.
+	1 = hash se vyskytuje ve vsech ostatnich strankach.
+Vypoctu vahu (vyznamnost) kazdeho indexu (hashe).
+	Index bez potomku (nejhlubsi hash) ma vahu 1.
+	Index s potomky je soucin vazenych *indexu* potomku. (index potomku = index*vaha)
+
+Jak vyresit chybejici hashe?
+
 Classes:
 ========
 Protocol - implements top-level class for known internet services (HTTP, FTP, SSH)
