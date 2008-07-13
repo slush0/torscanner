@@ -31,13 +31,17 @@ start web spider
 		if exceed "links per site" for this site:
 			remove link from bucket
 			skip to next link
-		download file from link
-		if file is html page (Content type):
-			get links from page to link bucket (check "links per site" limit!)
+		if file seems to be any HTTP content:
+			download HEADERS of file from link
+			if file is html page (Content-Type):
+				download and parse file content
+				get links from page to link bucket (check "links per site" limit!)
+		else (not HTTP protocol):
+			headers = empty
 		for each plugin:
 			skip plugin, if limit of number of files or bytes reached limits
-			if file matches to plugin rules (protocol, filetype, content type, ...)
-				add to plugin's list of matched files
+			if file matches to plugin rules (protocol, url, headers)
+				add url to plugin's list of matched files
 		remove link from bucket
 		if spider limits reached (max time, bytes), break
 		if limits on every plugins reached, break
