@@ -16,13 +16,11 @@ import re
 import random
 
 bots = ['bot', 'spider', 'agent', 'find', 'archive', 'crawler', 'seek']
-proxy_url = 'localhost'
-proxy_port = 9050
 
-def getRandomUserAgent(fromIndex=0, toIndex=9000, useTor=False):
+def getRandomUserAgent(fromIndex=0, toIndex=9000, useTor=False, host='localhost', port=9050):
     '''Takes random user agent from database. Try to find ten-times, when
     random record not found or if it looks like some bot.'''
-    conn = _connect(useTor)
+    conn = _connect(useTor, host, port)
     counter = 0
     while counter<10:
         index = random.randint(fromIndex, toIndex)
@@ -32,10 +30,10 @@ def getRandomUserAgent(fromIndex=0, toIndex=9000, useTor=False):
     _close(conn)
     return agent
     
-def getAllUserAgents(filename, useTor=False):
+def getAllUserAgents(filename, useTor=False, host='localhost', port=9050):
     '''Download ALL user-agents from site. Might run very long time. Be careful.'''
     fp = open(filename, 'a')
-    conn = _connect(useTor)
+    conn = _connect(useTor, host, port)
 
     counter = 0
     exitcounter = 0
@@ -61,10 +59,10 @@ def getAllUserAgents(filename, useTor=False):
     _close(conn)
     fp.close()
 
-def _connect(useTor):
+def _connect(useTor, host, port):
     if useTor:
          proxy = socks.socksocket()
-         proxy.setproxy(socks.PROXY_TYPE_SOCKS5, globals()['proxy_url'], globals()['proxy_port'])
+         proxy.setproxy(socks.PROXY_TYPE_SOCKS5, host, port)
          proxy.connect(("www.useragentstring.com", 80))
      
     conn = httplib.HTTPConnection("www.useragentstring.com", 80)
