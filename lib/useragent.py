@@ -4,22 +4,25 @@ This script download user-agents from useragentstring.com.
 Use on your own risk - there is no confirmation from site owners, that you
 can download and re-use user-agent strings in your application.
 
-Don't use this script very often
 Script author: slush <slush at centrum dot cz>, 2008
 Script licence: GPL v3
 '''
 
+import socket
+import socks
 import httplib
 import time
 import re
 import random
 
 bots = ['bot', 'spider', 'agent', 'find', 'archive', 'crawler', 'seek']
+proxy_url = 'localhost'
+proxy_port = 9050
 
-def getRandomUserAgent(fromIndex=0, toIndex=9000):
+def getRandomUserAgent(fromIndex=0, toIndex=9000, useTor=False):
     '''Takes random user agent from database. Try to find ten-times, when
     random record not found or if it looks like some bot.'''
-    conn = _connect()
+    conn = _connect(useTor)
     counter = 0
     while counter<10:
         index = random.randint(fromIndex, toIndex)
@@ -29,10 +32,10 @@ def getRandomUserAgent(fromIndex=0, toIndex=9000):
     _close(conn)
     return agent
     
-def getAllUserAgents(filename):
+def getAllUserAgents(filename, useTor=False):
     '''Download ALL user-agents from site. Might run very long time. Be careful.'''
     fp = open(filename, 'a')
-    conn = _connect()
+    conn = _connect(useTor)
 
     counter = 0
     exitcounter = 0
@@ -51,18 +54,27 @@ def getAllUserAgents(filename):
         fp.write("%s\n" % agent)
         fp.flush()
         
-        time.sleep(0.1)
+        time.sleep(0.2)
         counter += 1
         exitcounter = 0
         
     _close(conn)
     fp.close()
 
-def _connect():
-     return httplib.HTTPConnection("www.useragentstring.com")
-#    proxy = socks.socksocket()
-#    proxy.setproxy(socks.PROXY_TYPE_SOCKS5, 'localhost', 9059)
-#    conn.sock = proxy
+def _connect(useTor):
+    if useTor:
+         proxy = socks.socksocket()
+         proxy.setproxy(socks.PROXY_TYPE_SOCKS5, globals()['proxy_url'], globals()['proxy_port'])
+         proxy.connect(("www.useragentstring.com", 80))
+     
+    conn = httplib.HTTPConnection("www.useragentstring.com", 80)
+    if useTor:
+        conn.sock = proxy
+
+    return conn
+
+def _close(conn):
+    conn.close()
 
 def _getAgent(conn, index):
     conn.request("GET", '/index.php?id=%d' % index)
@@ -84,9 +96,6 @@ def _getAgent(conn, index):
         return False
     
     return ua
-
-def _close(conn):
-    conn.close()
 
 # If running standalone, retrieve user agents to local file
 if __name__ == '__main__':
