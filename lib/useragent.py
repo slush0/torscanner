@@ -5,7 +5,7 @@ Use on your own risk - there is no confirmation from site owners, that you
 can download and re-use user-agent strings in your application.
 
 Don't use this script very often
-Script author: Marek Palatinus, 2008
+Script author: slush <slush at centrum dot cz>, 2008
 Script licence: GPL v3
 '''
 
