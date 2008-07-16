@@ -17,60 +17,76 @@ first phase - preparation:
 * Internet (Using Google as start point).
 * Spider will stop after reaching limits on links per site, max files or bytes
 * downloaded per rule etc.
-load web spider conf (start keywords on google,
-		max links per site, max files/bytes download per rule, max time, max bytes)
-for each plugin:
-	retrieve rules (regexs) to protocol/filetype (http:// and *.doc etc)
-	add these rules to web spider (will follow only diven regexs)
-start web spider
-	select one of start keyword
-	download google search page
-	get links other than google.com to link bucket (check "links per site" limit!)
-	while link in bucket:
-		select link from bucket
-		if exceed "links per site" for this site:
-			remove link from bucket
-			skip to next link
-		if file seems to be any HTTP content:
-			download HEADERS of file from link
-			if file is html page (Content-Type):
-				download and parse file content
-				get links from page to link bucket (check "links per site" limit!)
-		else (not HTTP protocol):
-			headers = empty
-		for each plugin:
-			skip plugin, if limit of number of files or bytes reached limits
-			if file matches to plugin rules (protocol, url, headers)
-				add url to plugin's list of matched files
+* Vocabulary:
+* Link - address to any internet resource
+* Link bucket - queue of links to download by spider
+* File - downloaded resource
+* Content - content of file
+* Whitelist
+* Checklist - list of links to download thru Tor nodes
+load web spider conf (max links, max links per site, max time, max bytes)
+load whitelist (from file, from conf, ...)
+checklist = []
+add links from whitelist to link bucket
+while link in bucket:
+	select link from bucket (queue)
+	if exceed "links per site" for this site:
 		remove link from bucket
-		if spider limits reached (max time, bytes), break
-		if limits on every plugins reached, break
-for each plugin:
-	save plugin's list of matched files
+		skip to next link
+	if resource seems to be any HTTP content (protocol?):
+		download HEADERS of resource
+		add headers to cache (for execution phase)
+		if resource is html page (Content-Type):
+			download file and parse content (TODO)
+			get links from page to link bucket
+	else (not HTTP content):
+		headers = empty
+	for each plugin:
+		skip plugin, if its number of files or bytes reached limits
+		if link matches to plugin rules (protocol, url, headers)
+			add link to checklist
+	remove link from bucket
+	if spider limits reached (max time, bytes), break
+	if limits on every plugins reached, break
+save checklist
 
 second phase - execution:
 -------------------------
+load conf (max time, max bytes)
+load checklist
+load plugins
 connect to tor controller
 connect to tor socks proxy
 get list of all routers
-select running exit nodes, valid?, group them by country
-select running relays, uptime > 1day
-load check plugins
+exits = select nodes with flags: Exit, Running (?), Valid (?)
+relays = select nodes with flags: Running, Uptime > 1 day
+for each link in checklist:
+	if resource seems to be any HTTP content (protocol?):
+		download HEADERS of resource
 for each exit node:
 	while not valid circuit or tries > 3:
 		create 2node circuit "random relay, exit node"
-	for each checkPlugin:
+	nodebucket = checklist
+	while link in nodebucket:
+		for each plugin:
+			if link matches to plugin rules (protocol, url, headers):
+				call plugin._analyze(protocol, url, headers)
+				save to struct [link][exitnode]
+	if spider limits reached (max time, bytes), break
+	if limits on every plugins reached, break
+		
 
 third phase - analysis:
 -----------------------
 * Overview: Target of this phase is to cross-check plugin results of each matched file
 * across exit nodes. That means that there is no sharp border between valid and invalid exit node,
-* but some probability level of failure. When 99% exit nodes (in each country) returns the same
+* but some probability level of failure. When 99% exit nodes returns the same
 * content of page and the last one returns something modified, there is probably problem.
 * On other side, when only 20% nodes returns the same content, there is big probability, that
 * "problem" is on content provider side (dynamic links, time-specific links etc).
 * Each script user should consider weights of all aspect and select border level regards
 * his own usage of Tor.
+* Testing page: http://slush.cz/tortest.php
 
 Vstup: stromova struktura hashu pro kazdou stranku.
 	Stejna stranka stazena pres vsechny exit nody, tj. X kopii teze stranky.
