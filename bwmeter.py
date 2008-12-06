@@ -6,8 +6,8 @@
 # Author: Marek Palatinus
 # Licence: GPL
 
-import sys
-sys.path.append('lib')
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'lib-ext'))
 
 from TorCtl import *
 import socket
