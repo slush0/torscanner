@@ -47,15 +47,16 @@ class EventHandler(EventHandler):
         print 'stream_id', stream_id
         print 'circ', circ
         
-        if event.status == 'SUCCEEDED' and event.circ_id != circ:
+        if event.strm_id == stream_id and event.status == 'SUCCEEDED' and event.circ_id != circ:
             print "FUUUUUUUUUUUUUUUUUUUUUUCK!!!!!!!!!!!!!!!!!!"
             print "FUUUUUUUUUUUUUUUUUUUUUUCK!!!!!!!!!!!!!!!!!!"
             
-        if not stream_id and event.status in ['NEW', 'REMAP']:
+        if not stream_id and event.status in ['NEW']:
             stream_id = event.strm_id
             print "Stream %d created" % stream_id
-            print "Stream is ready to attach by thread"
-            ctl.ctl.attach_stream(stream_id, circ)
+            if event.circ_id != circ:
+                print "Stream is ready to reattach by thread"
+                ctl.ctl.attach_stream(stream_id, circ)
             
             #print "attach stream"   
             #print "StreamID %d, circid %d" % (stream_id, circ6)
@@ -281,9 +282,12 @@ print "Stream id", stream_id
 #ctl.ctl.attach_stream(stream_id, circ)
 print "Downloading file"
 proxy.send("GET /tortest.php HTTP/1.1\r\nHost: slush.cz\r\n\r\n")
+print "recv"
 proxy.recv()
+print "close"
 proxy.close()
-
+print "exit"
+sys.exit()
 #ctl.ctl.close_circuit(circ)
 #ctl.ctl.close_circuit(circ)
 #print "Exit by pressing Ctrl+C"
